@@ -225,6 +225,65 @@ class JWTAuthTest extends AbstractTestCase
     }
 
     /** @test */
+    public function it_should_invalidate_all_devices_for_the_current_token_subject()
+    {
+        $token = new Token('foo.bar.baz');
+        $payload = Mockery::mock(Payload::class);
+
+        $this->manager->shouldReceive('decode')->once()->with($token, false)->andReturn($payload);
+        $this->manager->shouldReceive('invalidateAll')->once()->with($payload)->andReturn(true);
+
+        $this->assertTrue($this->jwtAuth->setToken($token)->invalidateAll());
+    }
+
+    /** @test */
+    public function it_should_invalidate_all_devices_for_a_payload_subject()
+    {
+        $payload = Mockery::mock(Payload::class);
+
+        $this->manager->shouldReceive('invalidateAll')->once()->with($payload)->andReturn(true);
+
+        $this->assertTrue($this->jwtAuth->invalidateAll($payload));
+    }
+
+    /** @test */
+    public function it_should_invalidate_all_devices_for_a_user_subject()
+    {
+        $payload = Mockery::mock(Payload::class);
+        $payloadFactory = Mockery::mock(Factory::class);
+
+        $this->manager
+            ->shouldReceive('getPayloadFactory->customClaims')
+            ->once()
+            ->with(['sub' => 1, 'prv' => sha1('Tymon\JWTAuth\Test\Stubs\UserStub'), 'foo' => 'bar', 'role' => 'admin'])
+            ->andReturn($payloadFactory);
+
+        $payloadFactory->shouldReceive('make')->once()->andReturn($payload);
+
+        $this->manager->shouldReceive('invalidateAll')->once()->with($payload)->andReturn(true);
+
+        $this->assertTrue($this->jwtAuth->invalidateAll(new UserStub));
+    }
+
+    /** @test */
+    public function it_should_throw_an_exception_when_invalidating_all_devices_without_a_token()
+    {
+        $this->expectException(JWTException::class);
+        $this->expectExceptionMessage('A token is required');
+
+        $this->jwtAuth->invalidateAll();
+    }
+
+    /** @test */
+    public function it_should_throw_an_exception_when_invalidating_all_devices_with_an_invalid_subject()
+    {
+        $this->expectException(JWTException::class);
+        $this->expectExceptionMessage('The subject must be null, a payload, or an instance of JWTSubject.');
+
+        $this->jwtAuth->invalidateAll(new stdClass);
+    }
+
+    /** @test */
     public function it_should_retrieve_the_token_from_the_request()
     {
         $this->parser->shouldReceive('parseToken')->andReturn('foo.bar.baz');

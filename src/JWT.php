@@ -119,6 +119,33 @@ class JWT
     }
 
     /**
+     * Invalidate all tokens for a subject.
+     *
+     * @param  \Tymon\JWTAuth\Payload|\Tymon\JWTAuth\Contracts\JWTSubject|null  $subject
+     * @return bool
+     *
+     * @throws \Tymon\JWTAuth\Exceptions\JWTException
+     */
+    public function invalidateAll($subject = null)
+    {
+        if (is_null($subject)) {
+            $this->requireToken();
+
+            return $this->manager->invalidateAll($this->manager->decode($this->token, false));
+        }
+
+        if ($subject instanceof Payload) {
+            return $this->manager->invalidateAll($subject);
+        }
+
+        if ($subject instanceof JWTSubject) {
+            return $this->manager->invalidateAll($this->makePayload($subject));
+        }
+
+        throw new JWTException('The subject must be null, a payload, or an instance of JWTSubject.');
+    }
+
+    /**
      * Alias to get the payload, and as a result checks that
      * the token is valid i.e. not expired or blacklisted.
      *

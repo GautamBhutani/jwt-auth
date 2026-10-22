@@ -211,6 +211,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
             );
 
             return $instance->setBlacklistEnabled((bool) $this->config('blacklist_enabled'))
+                            ->setLogoutAllDevicesEnabled((bool) $this->config('logout_all_devices_enabled'))
                             ->setPersistentClaims($this->config('persistent_claims'));
         });
     }
@@ -280,7 +281,10 @@ abstract class AbstractServiceProvider extends ServiceProvider
             $instance = new Blacklist($app['tymon.jwt.provider.storage']);
 
             return $instance->setGracePeriod($this->config('blacklist_grace_period'))
-                            ->setRefreshTTL($this->config('refresh_ttl'));
+                            ->setTTL($this->config('ttl'))
+                            ->setRefreshTTL($this->config('refresh_ttl'))
+                            ->setLeeway($this->config('leeway'))
+                            ->setLogoutAllDevicesTTL($this->config('logout_all_devices_ttl'));
         });
     }
 

@@ -71,6 +71,30 @@ auth()->logout();
 auth()->logout(true);
 ```
 
+### logoutAllDevices()
+
+Invalidate all active tokens for a user by writing a per-subject revocation cutoff.
+
+```php
+// Revoke all active tokens for the currently authenticated token subject
+auth()->logoutAllDevices();
+
+// Revoke all active tokens for an explicit user subject
+auth()->logoutAllDevices($user);
+```
+
+`logoutAllDevices()` is optional and disabled by default. Enable it with
+`logout_all_devices_enabled` in `config/jwt.php` first.
+
+Subject cutoffs are second-precision, so a token issued in the same second as
+the revoke is also rejected.
+
+Revocations are stored in cache. If that cache store is flushed/cleared,
+previously revoked sessions can authenticate again.
+
+If you pass `auth()->logoutAllDevices($user)`, make sure your application
+authorizes who is allowed to revoke other users' sessions.
+
 ### refresh()
 
 Refresh a token, which invalidates the current one
