@@ -154,6 +154,26 @@ class JWTGuard implements Guard
     }
 
     /**
+     * Logout all of a user's active devices by subject revocation.
+     *
+     * @param  \Tymon\JWTAuth\Contracts\JWTSubject|null  $user
+     * @return void
+     */
+    public function logoutAllDevices(?JWTSubject $user = null)
+    {
+        if (! is_null($user)) {
+            $this->jwt->invalidateAll($user);
+
+            return;
+        }
+
+        $this->requireToken()->invalidateAll();
+
+        $this->user = null;
+        $this->jwt->unsetToken();
+    }
+
+    /**
      * Refresh the token.
      *
      * @param  bool  $forceForever
@@ -324,6 +344,19 @@ class JWTGuard implements Guard
     public function getUser()
     {
         return $this->user;
+    }
+
+    /**
+     * Set the current user.
+     *
+     * @param  mixed  $user
+     * @return $this
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
+
+        return $this;
     }
 
     /**

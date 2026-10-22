@@ -220,6 +220,37 @@ return [
     'blacklist_enabled' => env('JWT_BLACKLIST_ENABLED', true),
 
     /*
+    |--------------------------------------------------------------------------
+    | Logout All Devices Enabled
+    |--------------------------------------------------------------------------
+    |
+    | Enables a subject-wide revocation cutoff that can invalidate all active
+    | tokens for a user in one action.
+    |
+    | This feature is disabled by default.
+    |
+    */
+
+    'logout_all_devices_enabled' => env('JWT_LOGOUT_ALL_DEVICES_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logout All Devices TTL
+    |--------------------------------------------------------------------------
+    |
+    | Number of minutes to retain subject revocation cutoffs in storage.
+    | Base retention is max(ttl, refresh_ttl) + 1 + ceil(leeway / 60),
+    | so the record outlives every token it revokes. A custom value can
+    | only lengthen this window.
+    |
+    | When ttl or refresh_ttl is null (unbounded token/refresh lifetime),
+    | revocation records are stored forever.
+    |
+    */
+
+    'logout_all_devices_ttl' => env('JWT_LOGOUT_ALL_DEVICES_TTL', null),
+
+    /*
     | -------------------------------------------------------------------------
     | Blacklist Grace Period
     | -------------------------------------------------------------------------

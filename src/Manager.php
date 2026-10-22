@@ -14,6 +14,7 @@ namespace Tymon\JWTAuth;
 use Tymon\JWTAuth\Contracts\Providers\JWT as JWTContract;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
+use Tymon\JWTAuth\Exceptions\TokenRevokedException;
 use Tymon\JWTAuth\Support\CustomClaims;
 use Tymon\JWTAuth\Support\RefreshFlow;
 
@@ -48,6 +49,13 @@ class Manager
      * @var bool
      */
     protected $blacklistEnabled = true;
+
+    /**
+     * The logout-all-devices flag.
+     *
+     * @var bool
+     */
+    protected $logoutAllDevicesEnabled = false;
 
     /**
      * the persistent claims.
@@ -106,6 +114,10 @@ class Manager
             throw new TokenBlacklistedException('The token has been blacklisted');
         }
 
+        if ($checkBlacklist && $this->logoutAllDevicesEnabled && $this->blacklist->hasSubject($payload)) {
+            throw new TokenRevokedException('The token has been revoked');
+        }
+
         return $payload;
     }
 
@@ -156,6 +168,23 @@ class Manager
     }
 
     /**
+     * Invalidate all tokens for a payload subject.
+     *
+     * @param  \Tymon\JWTAuth\Payload  $payload
+     * @return bool
+     *
+     * @throws \Tymon\JWTAuth\Exceptions\JWTException
+     */
+    public function invalidateAll(Payload $payload)
+    {
+        if (! $this->logoutAllDevicesEnabled) {
+            throw new JWTException('You must have logout all devices enabled to invalidate all tokens.');
+        }
+
+        return $this->blacklist->addSubject($payload);
+    }
+
+    /**
      * Build the claims to go into the refreshed token.
      *
      * @param  \Tymon\JWTAuth\Payload  $payload
@@ -163,10 +192,17 @@ class Manager
      */
     protected function buildRefreshClaims(Payload $payload)
     {
+        $claims = $payload->toArray();
+
         // Get the claims to be persisted from the payload
-        $persistentClaims = collect($payload->toArray())
+        $persistentClaims = collect($claims)
             ->only($this->persistentClaims)
             ->toArray();
+
+        $persistentClaims = array_merge(
+            $persistentClaims,
+            array_key_exists('prv', $claims) ? ['prv' => $claims['prv']] : []
+        );
 
         // persist the relevant claims
         return array_merge(
@@ -220,6 +256,29 @@ class Manager
         $this->blacklistEnabled = $enabled;
 
         return $this;
+    }
+
+    /**
+     * Set whether logout-all-devices is enabled.
+     *
+     * @param  bool  $enabled
+     * @return $this
+     */
+    public function setLogoutAllDevicesEnabled($enabled)
+    {
+        $this->logoutAllDevicesEnabled = (bool) $enabled;
+
+        return $this;
+    }
+
+    /**
+     * Get whether logout-all-devices is enabled.
+     *
+     * @return bool
+     */
+    public function getLogoutAllDevicesEnabled()
+    {
+        return $this->logoutAllDevicesEnabled;
     }
 
     /**

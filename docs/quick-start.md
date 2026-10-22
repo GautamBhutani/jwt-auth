@@ -90,6 +90,8 @@ Route::group([
 
     Route::post('login', 'AuthController@login');
     Route::post('logout', 'AuthController@logout');
+    // Optional: revoke all active tokens for the current subject.
+    Route::post('logout-all-devices', 'AuthController@logoutAllDevices');
     Route::post('refresh', 'AuthController@refresh');
     Route::post('me', 'AuthController@me');
 
@@ -162,6 +164,20 @@ class AuthController extends Controller
         auth()->logout();
 
         return response()->json(['message' => 'Successfully logged out']);
+    }
+
+    /**
+     * Optional: Log the user out from all active devices.
+     *
+     * Requires `logout_all_devices_enabled` => true in config/jwt.php.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function logoutAllDevices()
+    {
+        auth()->logoutAllDevices();
+
+        return response()->json(['message' => 'Successfully logged out from all devices']);
     }
 
     /**

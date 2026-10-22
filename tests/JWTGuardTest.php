@@ -12,6 +12,7 @@
 namespace Tymon\JWTAuth\Test;
 
 use Illuminate\Auth\EloquentUserProvider;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Mockery;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -266,6 +267,75 @@ class JWTGuardTest extends AbstractTestCase
 
         $this->guard->logout();
         $this->assertNull($this->guard->getUser());
+    }
+
+    /** @test */
+    public function it_should_logout_the_user_from_all_devices_using_the_current_token()
+    {
+        $this->guard->setUser(Mockery::mock(Authenticatable::class));
+
+        $this->jwt->shouldReceive('setRequest')->andReturn($this->jwt);
+        $this->jwt->shouldReceive('getToken')->once()->andReturn(true);
+        $this->jwt->shouldReceive('invalidateAll')->once()->withNoArgs()->andReturn(true);
+        $this->jwt->shouldReceive('unsetToken')->once();
+
+        $this->guard->logoutAllDevices();
+
+        $this->assertNull($this->guard->getUser());
+    }
+
+    /** @test */
+    public function it_should_allow_setting_a_generic_cached_user_object()
+    {
+        $cachedUser = (object) ['id' => 44];
+
+        $this->assertSame($this->guard, $this->guard->setUser($cachedUser));
+        $this->assertSame($cachedUser, $this->guard->getUser());
+    }
+
+    /** @test */
+    public function it_should_logout_an_explicit_user_from_all_devices_without_touching_the_current_token()
+    {
+        $cachedUser = Mockery::mock(Authenticatable::class);
+        $subject = new LaravelUserStub;
+
+        $this->guard->setUser($cachedUser);
+
+        $this->jwt->shouldReceive('setRequest')->never();
+        $this->jwt->shouldReceive('getToken')->never();
+        $this->jwt->shouldReceive('invalidateAll')->once()->with($subject)->andReturn(true);
+        $this->jwt->shouldReceive('unsetToken')->never();
+
+        $this->guard->logoutAllDevices($subject);
+
+        $this->assertSame($cachedUser, $this->guard->getUser());
+    }
+
+    /** @test */
+    public function it_should_throw_an_exception_if_no_token_is_present_when_logging_out_all_devices()
+    {
+        $this->expectException(JWTException::class);
+        $this->expectExceptionMessage('Token could not be parsed from the request.');
+
+        $this->jwt->shouldReceive('setRequest')->andReturn($this->jwt);
+        $this->jwt->shouldReceive('getToken')->once()->andReturn(false);
+        $this->jwt->shouldReceive('invalidateAll')->never();
+
+        $this->guard->logoutAllDevices();
+    }
+
+    /** @test */
+    public function it_should_propagate_invalidate_all_exceptions()
+    {
+        $this->expectException(JWTException::class);
+        $this->expectExceptionMessage('logout-all disabled');
+
+        $this->jwt->shouldReceive('setRequest')->andReturn($this->jwt);
+        $this->jwt->shouldReceive('getToken')->once()->andReturn(true);
+        $this->jwt->shouldReceive('invalidateAll')->once()->withNoArgs()->andThrow(new JWTException('logout-all disabled'));
+        $this->jwt->shouldReceive('unsetToken')->never();
+
+        $this->guard->logoutAllDevices();
     }
 
     /** @test */
